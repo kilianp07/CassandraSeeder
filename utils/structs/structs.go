@@ -2,7 +2,7 @@ package structs
 
 type Coordinates struct {
 	Type        string     `json:"type"`
-	Coordinates [2]float64 `json:"coordinates"`
+	Coordinates [2]float32 `json:"coordinates"`
 }
 
 type Address struct {

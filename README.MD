@@ -8,7 +8,10 @@ Before running the *CassandraSeeder* application, make sure you have the followi
 
 - Go (1.15 or later)
 - Cassandra (3.0 or later)
-
+- Run validate_json script to validate the json file
+```sh
+bash validate_json.sh
+```
 ## Getting Started
 
 1. Clone the repository to your local machine:

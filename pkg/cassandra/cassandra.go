@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
+	"github.com/google/uuid"
+	"github.com/kilianp07/CassandraSeeder/utils/structs"
 )
 
 type Cassandra struct {
@@ -44,10 +46,7 @@ func (c *Cassandra) Initialize() error {
 }
 
 func (c *Cassandra) Migrate() error {
-	// Connect to Cassandra
-	cluster := gocql.NewCluster(c.host)
-	cluster.Keyspace = c.keyspace
-	session, err := cluster.CreateSession()
+	session, err := c.cluster.CreateSession()
 	if err != nil {
 		fmt.Println("Error creating session: ", err)
 		return err
@@ -61,7 +60,6 @@ func (c *Cassandra) Migrate() error {
 			name TEXT,
 			borough TEXT,
 			cuisine TEXT,
-			address_id TEXT
 		)
 	`).Exec()
 	if err != nil {
@@ -72,9 +70,8 @@ func (c *Cassandra) Migrate() error {
 	err = session.Query(`
 		CREATE TABLE IF NOT EXISTS addresses (
 			address_id TEXT PRIMARY KEY,
+			restaurant_id TEXT,
 			building TEXT,
-			coord_type TEXT,
-			coord_coords LIST<FLOAT>,
 			street TEXT,
 			zipcode TEXT
 		)
@@ -86,7 +83,7 @@ func (c *Cassandra) Migrate() error {
 
 	err = session.Query(`
 		CREATE TABLE IF NOT EXISTS grades (
-			grade_id UUID PRIMARY KEY,
+			grade_id TEXT PRIMARY KEY,
 			restaurant_id TEXT,
 			date TIMESTAMP,
 			grade TEXT,
@@ -100,7 +97,8 @@ func (c *Cassandra) Migrate() error {
 
 	err = session.Query(`
 		CREATE TABLE IF NOT EXISTS coordinates (
-			coord_id UUID PRIMARY KEY,
+			coord_id TEXT PRIMARY KEY,
+			address_id TEXT,
 			type TEXT,
 			coordinates LIST<FLOAT>
 		)
@@ -111,6 +109,68 @@ func (c *Cassandra) Migrate() error {
 	}
 
 	fmt.Println("Migration completed successfully.")
+
+	return nil
+}
+
+func (c *Cassandra) MigrateRestaurantData(r structs.Restaurant) error {
+
+	session, err := c.cluster.CreateSession()
+	if err != nil {
+		fmt.Println("Error creating session: ", err)
+		return err
+	}
+	defer session.Close()
+
+	// Generate UUIDs for primary keys
+	addressID := uuid.New().String()
+	gradeID := uuid.New().String()
+	coordID := uuid.New().String()
+
+	// Insert restaurant data
+	err = session.Query(`
+		INSERT INTO restaurants (restaurant_id, name, borough, cuisine)
+		VALUES (?, ?, ?, ?)`,
+		r.RestaurantID, r.Name, r.Borough, r.Cuisine,
+	).Exec()
+	if err != nil {
+		return err
+	}
+
+	// Insert address data
+	err = session.Query(`
+		INSERT INTO addresses (address_id, restaurant_id, building, street, zipcode)
+		VALUES (?, ?, ?, ?, ?)`,
+		addressID, r.RestaurantID, r.Address.Building, r.Address.Street, r.Address.Zipcode,
+	).Exec()
+	if err != nil {
+		return err
+	}
+
+	// Insert grade data
+	for _, g := range r.Grades {
+		err = session.Query(`
+			INSERT INTO grades (grade_id, restaurant_id, date, grade, score)
+			VALUES (?, ?, ?, ?, ?)`,
+			gradeID, r.RestaurantID, g.Date.Date, g.Grade, g.Score,
+		).Exec()
+		if err != nil {
+			return err
+		}
+
+		// Generate a new UUID for the next grade
+		gradeID = uuid.New().String()
+	}
+
+	// Insert coordinates data
+	err = session.Query(`
+		INSERT INTO coordinates (coord_id, address_id, type, coordinates)
+		VALUES (?, ?, ?, ?)`,
+		coordID, addressID, r.Address.Coord.Type, r.Address.Coord.Coordinates,
+	).Exec()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

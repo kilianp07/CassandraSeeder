@@ -9,9 +9,9 @@ import (
 	"github.com/kilianp07/CassandraSeeder/utils/structs"
 )
 
-func Read() ([]structs.Restaurant, error) {
+func Read(filepath string) ([]structs.Restaurant, error) {
 	// Open the JSON file
-	file, err := os.Open("../restaurant2.json")
+	file, err := os.Open(filepath)
 	if err != nil {
 		fmt.Println("Failed to open file:", err)
 		return nil, err
