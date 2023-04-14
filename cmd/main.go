@@ -17,16 +17,23 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println(os.Getenv("CASSANDRA_HOST"))
+
 	data, err := reader.Read()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(data[1])
 
 	// Initialize cassandra
-	cassandra, err := cassandra.NewCassandra(os.Getenv("CASSANDRA_HOST"), os.Getenv("CASSANDRA_USERNAME"), os.Getenv("CASSANDRA_PASSWORD"))
+	cassandra, err := cassandra.NewCassandra(os.Getenv("CASSANDRA_HOST"), os.Getenv("CASSANDRA_USERNAME"), os.Getenv("CASSANDRA_PASSWORD"), os.Getenv("CASSANDRA_KEYSPACE"))
 	if err != nil {
 		panic(err)
 	}
-	cassandra.Initialize()
+	if err := cassandra.Initialize(); err != nil {
+		panic(err)
+	}
+
+	if err := cassandra.Migrate(); err != nil {
+		panic(err)
+	}
 }
