@@ -2,6 +2,11 @@
 
 *CassandraSeeder* is a Go application that demonstrates data migration to Cassandra using the gocql driver. It provides a simple example of how to migrate data from a Go struct to Cassandra tables.
 
+## Downloading a Release
+
+You can download a release from the [releases page](https://github.com/kilianp07/CassandraSeeder/releases). 
+
+
 ## Prerequisites
 
 Before running the *CassandraSeeder* application, make sure you have the following installed:

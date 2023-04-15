@@ -3,18 +3,11 @@ package main
 import (
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/kilianp07/CassandraSeeder/pkg/cassandra"
 	"github.com/kilianp07/CassandraSeeder/pkg/reader"
 )
 
 func main() {
-
-	// Read .env file
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
 
 	data, err := reader.Read(os.Getenv("JSON_FILEPATH"))
 	if err != nil {
