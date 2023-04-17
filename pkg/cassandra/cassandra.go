@@ -37,11 +37,11 @@ func (c *Cassandra) Initialize() error {
 	c.cluster.Keyspace = c.keyspace
 
 	session, err := c.cluster.CreateSession()
-	if err != nil {
+	if err != nil && session != nil {
 		fmt.Printf("Error creating session: %v \n", err)
 		return err
 	}
-	fmt.Println("cassandra well initialized", session)
+	fmt.Println("cassandra well initialized")
 	return nil
 }
 
@@ -108,7 +108,7 @@ func (c *Cassandra) Migrate() error {
 		return err
 	}
 
-	fmt.Println("Migration completed successfully.")
+	fmt.Println("Tables are created successfully.")
 
 	return nil
 }
