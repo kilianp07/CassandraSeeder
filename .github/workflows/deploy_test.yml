@@ -1,0 +1,53 @@
+name: Migrate JSON data to Cassandra
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      CASSANDRA_USERNAME: ${{ secrets.CASSANDRA_USERNAME }}
+      CASSANDRA_PASSWORD: ${{ secrets.CASSANDRA_PASSWORD }}
+      CASSANDRA_HOST: ${{ secrets.CASSANDRA_HOST }}
+      CASSANDRA_KEYSPACE: ${{ secrets.CASSANDRA_KEYSPACE }}
+      JSON_FILE_PATH: ./restaurant2.json
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Go project
+        run: |
+          make
+
+      - name: Start Cassandra
+        run: |
+          docker run --name my-cassandra-container \
+          -e CASSANDRA_USERNAME=${{ secrets.CASSANDRA_USERNAME }} \
+          -e CASSANDRA_PASSWORD=${{ secrets.CASSANDRA_PASSWORD }} \
+          -d cassandra:latest
+
+      - name: Create .env file
+        run: |
+          echo "CASSANDRA_USERNAME=${CASSANDRA_USERNAME}" > .env
+          echo "CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD}" >> .env
+          echo "CASSANDRA_HOST=${CASSANDRA_HOST}" >> .env
+          echo "CASSANDRA_KEYSPACE=${CASSANDRA_KEYSPACE}" >> .env
+          echo "JSON_FILE_PATH=./restaurant2.json" >> .env
+
+      - name: Transform JSON to CSV
+        run: |
+          bash validate_json.sh
+          cp restaurant2.json ./build/restaurant2.json
+
+      - name: Run project
+        run: |
+          cp .env ./build/.env
+          cat ./build/.env
+          ls -la ./build
+          cd ./build && ./CassandraSeeder
+ 
