@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/kilianp07/CassandraSeeder/pkg/cassandra"
 	"github.com/kilianp07/CassandraSeeder/pkg/reader"
@@ -34,6 +35,7 @@ func main() {
 	}
 
 	for _, restaurant := range data {
+		restaurant.RestaurantID = uuid.New().String()
 		fmt.Println("Migrating restaurant: ", restaurant.Name)
 		if err := cassandra.MigrateRestaurantData(restaurant); err != nil {
 			panic(err)
