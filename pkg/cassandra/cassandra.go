@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
-	"github.com/google/uuid"
 	"github.com/kilianp07/CassandraSeeder/utils/structs"
 )
 
@@ -34,14 +33,38 @@ func (c *Cassandra) Initialize() error {
 		Password: c.password,
 	}
 
+	c.CreateKeyspace()
 	c.cluster.Keyspace = c.keyspace
 
 	session, err := c.cluster.CreateSession()
+
+	defer session.Close()
+
 	if err != nil && session != nil {
 		fmt.Printf("Error creating session: %v \n", err)
 		return err
 	}
 	fmt.Println("cassandra well initialized")
+	return nil
+}
+
+// Create keyspace
+func (c *Cassandra) CreateKeyspace() error {
+	session, err := c.cluster.CreateSession()
+	defer session.Close()
+
+	err = session.Query(`
+		CREATE KEYSPACE IF NOT EXISTS ` + c.keyspace + `
+		WITH REPLICATION = {
+			'class' : 'SimpleStrategy',
+			'replication_factor' : 1
+		}
+	`).Exec()
+	if err != nil {
+		fmt.Println("Error creating keyspace: ", err)
+		return err
+	}
+	fmt.Println("Keyspace is created successfully.")
 	return nil
 }
 
@@ -53,67 +76,30 @@ func (c *Cassandra) Migrate() error {
 	}
 	defer session.Close()
 
-	// Create tables if not exists
-	err = session.Query(`
-		CREATE TABLE IF NOT EXISTS restaurants (
-			restaurant_id TEXT PRIMARY KEY,
-			name TEXT,
-			borough TEXT,
-			cuisine TEXT,
-		)
-	`).Exec()
+	createTableQuery := `CREATE TABLE IF NOT EXISTS my_table (
+		id UUID PRIMARY KEY,
+		title text,
+		name text,
+		address text,
+		realAddress text,
+		department text,
+		country text,
+		tel text,
+		email text
+	)`
+
+	err = session.Query(createTableQuery).Exec()
 	if err != nil {
-		fmt.Println("Error creating table restaurants: ", err)
+		fmt.Println("Failed to create table:", err)
 		return err
 	}
 
-	err = session.Query(`
-		CREATE TABLE IF NOT EXISTS addresses (
-			address_id TEXT PRIMARY KEY,
-			restaurant_id TEXT,
-			building TEXT,
-			street TEXT,
-			zipcode TEXT
-		)
-	`).Exec()
-	if err != nil {
-		fmt.Println("Error creating table addresses: ", err)
-		return err
-	}
-
-	err = session.Query(`
-		CREATE TABLE IF NOT EXISTS grades (
-			grade_id TEXT PRIMARY KEY,
-			restaurant_id TEXT,
-			date TIMESTAMP,
-			grade TEXT,
-			score INT
-		)
-	`).Exec()
-	if err != nil {
-		fmt.Println("Error creating table grades: ", err)
-		return err
-	}
-
-	err = session.Query(`
-		CREATE TABLE IF NOT EXISTS coordinates (
-			coord_id TEXT PRIMARY KEY,
-			address_id TEXT,
-			type TEXT,
-			coordinates LIST<FLOAT>
-		)
-	`).Exec()
-	if err != nil {
-		fmt.Println("Error creating table coordinates: ", err)
-		return err
-	}
-
-	fmt.Println("Tables are created successfully.")
+	fmt.Println("Table created successfully")
 
 	return nil
 }
 
-func (c *Cassandra) MigrateRestaurantData(r structs.Restaurant) error {
+func (c *Cassandra) MigrateData(data structs.Contact) error {
 
 	session, err := c.cluster.CreateSession()
 	if err != nil {
@@ -122,55 +108,14 @@ func (c *Cassandra) MigrateRestaurantData(r structs.Restaurant) error {
 	}
 	defer session.Close()
 
-	// Generate UUIDs for primary keys
-	addressID := uuid.New().String()
-	gradeID := uuid.New().String()
-	coordID := uuid.New().String()
-
 	// Insert restaurant data
 	err = session.Query(`
-		INSERT INTO restaurants (restaurant_id, name, borough, cuisine)
-		VALUES (?, ?, ?, ?)`,
-		r.RestaurantID, r.Name, r.Borough, r.Cuisine,
+		INSERT INTO my_table (id, title, name, address, realAddress, department, country, tel, email)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		data.Id, data.Title, data.Name, data.Address, data.RealAddress, data.Departement, data.Country, data.Tel, data.Email,
 	).Exec()
 	if err != nil {
 		return err
 	}
-
-	// Insert address data
-	err = session.Query(`
-		INSERT INTO addresses (address_id, restaurant_id, building, street, zipcode)
-		VALUES (?, ?, ?, ?, ?)`,
-		addressID, r.RestaurantID, r.Address.Building, r.Address.Street, r.Address.Zipcode,
-	).Exec()
-	if err != nil {
-		return err
-	}
-
-	// Insert grade data
-	for _, g := range r.Grades {
-		err = session.Query(`
-			INSERT INTO grades (grade_id, restaurant_id, date, grade, score)
-			VALUES (?, ?, ?, ?, ?)`,
-			gradeID, r.RestaurantID, g.Date.Date, g.Grade, g.Score,
-		).Exec()
-		if err != nil {
-			return err
-		}
-
-		// Generate a new UUID for the next grade
-		gradeID = uuid.New().String()
-	}
-
-	// Insert coordinates data
-	err = session.Query(`
-		INSERT INTO coordinates (coord_id, address_id, type, coordinates)
-		VALUES (?, ?, ?, ?)`,
-		coordID, addressID, r.Address.Coord.Type, r.Address.Coord.Coordinates,
-	).Exec()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

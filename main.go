@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/kilianp07/CassandraSeeder/pkg/cassandra"
 	"github.com/kilianp07/CassandraSeeder/pkg/reader"
@@ -16,13 +15,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	data, err := reader.Read(os.Getenv("JSON_FILEPATH"))
+	data, err := reader.Read("./contacts.csv")
 	if err != nil {
 		panic(err)
 	}
 
 	// Initialize cassandra
-	cassandra, err := cassandra.NewCassandra(os.Getenv("CASSANDRA_HOST"), os.Getenv("CASSANDRA_USERNAME"), os.Getenv("CASSANDRA_PASSWORD"), os.Getenv("CASSANDRA_KEYSPACE"))
+	cassandra, err := cassandra.NewCassandra(os.Getenv("CASSANDRA_HOST"), os.Getenv("CASSANDRA_USERNAME"), os.Getenv("CASSANDRA_PASSWORD"), "contacts")
 	if err != nil {
 		panic(err)
 	}
@@ -34,10 +33,9 @@ func main() {
 		panic(err)
 	}
 
-	for _, restaurant := range data {
-		restaurant.RestaurantID = uuid.New().String()
-		fmt.Println("Migrating restaurant: ", restaurant.Name)
-		if err := cassandra.MigrateRestaurantData(restaurant); err != nil {
+	for _, contact := range data {
+		fmt.Println("Migrating Contact: ", contact.Name)
+		if err := cassandra.MigrateData(contact); err != nil {
 			panic(err)
 		}
 	}
