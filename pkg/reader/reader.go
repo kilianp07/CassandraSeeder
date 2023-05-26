@@ -1,37 +1,39 @@
 package reader
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
+	"encoding/csv"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/kilianp07/CassandraSeeder/utils/structs"
 )
 
-func Read(filepath string) ([]structs.Restaurant, error) {
-	// Open the JSON file
+func Read(filepath string) ([]structs.Contact, error) {
+	var data []structs.Contact
+	// Read csv file
 	file, err := os.Open(filepath)
 	if err != nil {
-		fmt.Println("Failed to open file:", err)
 		return nil, err
 	}
 	defer file.Close()
 
-	// Read the JSON data from the file
-	jsonData, err := io.ReadAll(file)
+	csvLines, err := csv.NewReader(file).ReadAll()
 	if err != nil {
-		fmt.Println("Failed to read file:", err)
 		return nil, err
 	}
 
-	// Unmarshal JSON data into slice of Restaurant structs
-	var restaurants []structs.Restaurant
-	err = json.Unmarshal(jsonData, &restaurants)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
-		return nil, err
+	for _, line := range csvLines {
+		data = append(data, structs.Contact{
+			Id:          uuid.New().String(),
+			Title:       line[0],
+			Name:        line[1],
+			Address:     line[2],
+			RealAddress: line[3],
+			Departement: line[4],
+			Country:     line[5],
+			Tel:         line[6],
+			Email:       line[7],
+		})
 	}
-
-	return restaurants, nil
+	return data, nil
 }
