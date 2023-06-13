@@ -1,0 +1,41 @@
+version: '3.9'
+
+services:
+  cassandra:
+    image: cassandra:4.0
+    ports:
+      - 9042:9042
+    volumes:
+      - cassandra:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES'"]
+      interval: 5s
+      timeout: 10s
+      retries: 6
+    environment:
+      - CASSANDRA_CLUSTER_NAME=test
+    
+  seeder:
+    build: .
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    environment:
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_USERNAME=cassandra
+    
+  api:
+    image: ghcr.io/kilianp07/cassandracrud:latest
+    depends_on:
+      seeder:
+        condition: service_completed_successfully
+    ports:
+      - 8080:8080
+    environment:
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_USERNAME=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+
+volumes:
+  cassandra:
+

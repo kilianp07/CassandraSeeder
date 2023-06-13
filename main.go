@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 	if err := cassandra.Initialize(); err != nil {
-		panic(err)
+		os.Exit(1)
 	}
 
 	if err := cassandra.Migrate(); err != nil {

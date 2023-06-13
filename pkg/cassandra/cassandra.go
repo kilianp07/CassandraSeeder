@@ -27,6 +27,12 @@ func NewCassandra(host string, username string, password string, keyspace string
 }
 
 func (c *Cassandra) Initialize() error {
+
+	if c.keyspaceExists() {
+		fmt.Println("keyspace already exists")
+		return fmt.Errorf("keyspace already exists")
+	}
+
 	c.cluster = gocql.NewCluster(c.host)
 	c.cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: c.username,
@@ -50,10 +56,10 @@ func (c *Cassandra) Initialize() error {
 
 // Create keyspace
 func (c *Cassandra) CreateKeyspace() error {
-	session, err := c.cluster.CreateSession()
+	session, _ := c.cluster.CreateSession()
 	defer session.Close()
 
-	err = session.Query(`
+	err := session.Query(`
 		CREATE KEYSPACE IF NOT EXISTS ` + c.keyspace + `
 		WITH REPLICATION = {
 			'class' : 'SimpleStrategy',
@@ -118,4 +124,24 @@ func (c *Cassandra) MigrateData(data structs.Contact) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Cassandra) keyspaceExists() bool {
+	cluster := gocql.NewCluster(c.host) // Replace with your Cassandra cluster address
+	session, err := cluster.CreateSession()
+	if err != nil {
+		fmt.Println("Failed to connect to Cassandra:", err)
+		return false
+	}
+	defer session.Close()
+
+	// Fetch metadata of the keyspace
+	query := fmt.Sprintf("SELECT keyspace_name FROM system_schema.keyspaces WHERE keyspace_name = '%s'", c.keyspace)
+	iter := session.Query(query).Iter()
+
+	// Check if the keyspace exists
+	var fetchedKeyspace string
+
+	return iter.Scan(&fetchedKeyspace)
+
 }

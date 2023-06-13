@@ -47,7 +47,7 @@ Before running the *CassandraSeeder* application, make sure you have the followi
     make build
     ```
 
-    *. Create your `.env` file structured like this:
+    * Create your `.env` file structured like this:
     ```sh
     CASSANDRA_HOST=
     CASSANDRA_USERNAME=
@@ -55,6 +55,11 @@ Before running the *CassandraSeeder* application, make sure you have the followi
     ```
     Note: The `.env` and `contact.csv` files must be in the same directory as the executable. 
 
+    * Place the `.env` and the `contact.csv` files in the same directory as the executable.
+    ```bash
+    cp .env build/.env
+    cp contact.csv build/contact.csv
+    ```
 
     * Run the application:
     ```sh
