@@ -3,7 +3,7 @@ module github.com/kilianp07/CassandraSeeder
 go 1.20
 
 require (
-	github.com/gocql/gocql v1.3.2
+	github.com/gocql/gocql v1.6.0
 	github.com/google/uuid v1.3.0
 )
 
